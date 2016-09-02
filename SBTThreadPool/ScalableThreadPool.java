@@ -9,6 +9,7 @@ public class ScalableThreadPool implements ThreadPool {
     private final Queue<Runnable> tasks = new ArrayDeque<>();
     private final int minThreadCount;
     private final int maxThreadCount;
+    private volatile int currentThreads;
 
     public ScalableThreadPool(int minThreadCount, int  maxThreadCount) {
         this.minThreadCount = minThreadCount;
@@ -20,14 +21,19 @@ public class ScalableThreadPool implements ThreadPool {
         for (int i = 0; i < minThreadCount; i++) {
             new Worker().start();
         }
+        currentThreads = minThreadCount;
     }
 
     @Override
     public void execute(Runnable runnable) {
         synchronized (tasks) {
             tasks.add(runnable);
+            if (!tasks.isEmpty() && (currentThreads < maxThreadCount)) {
+                new Worker().start();
+            }
             tasks.notifyAll();
-            //если tasks не пуст создать нового воркера
+
+
         }
     }
 
@@ -43,7 +49,10 @@ public class ScalableThreadPool implements ThreadPool {
                     while (tasks.isEmpty()) {
                         try {
                             tasks.wait();
-                            //если потоков больше то убить себя
+                            if (currentThreads > minThreadCount) {
+                                currentThreads--;
+                                return;
+                            }
                         } catch (InterruptedException ignored) {
                         }
                     }
