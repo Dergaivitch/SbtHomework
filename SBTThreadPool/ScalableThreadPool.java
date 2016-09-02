@@ -27,6 +27,7 @@ public class ScalableThreadPool implements ThreadPool {
         synchronized (tasks) {
             tasks.add(runnable);
             tasks.notifyAll();
+            //если tasks не пуст создать нового воркера
         }
     }
 
@@ -37,11 +38,12 @@ public class ScalableThreadPool implements ThreadPool {
             Runnable r;
 
             while (true) {
-                
+
                 synchronized (tasks) {
                     while (tasks.isEmpty()) {
                         try {
                             tasks.wait();
+                            //если потоков больше то убить себя
                         } catch (InterruptedException ignored) {
                         }
                     }
